@@ -1,0 +1,9 @@
+numpy
+opencv-python
+scikit-learn
+scikit-image
+joblib
+Pillow
+tkinterdnd2
+tqdm
+PyQt5
