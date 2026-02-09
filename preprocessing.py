@@ -7,6 +7,7 @@ import random
 from skimage.feature import local_binary_pattern
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 
 DATA_ROOT = "data"
 CROP_SIZE = 128
@@ -68,13 +69,9 @@ def process_folder_smart_crop(folder_name):
     img_dir = os.path.join(full_path, "images")
     lbl_dir = os.path.join(full_path, "labels")
     image_paths = glob.glob(os.path.join(img_dir, "*.jpg"))
-    
     X_list = []
     y_list = []
-    
-    print(f"Processing {folder_name}...")
-    
-    for i, img_path in enumerate(image_paths):
+    for img_path in tqdm(image_paths, desc=f"Processing {folder_name}", unit="img"):
         try:
             img = cv2.imread(img_path)
             if img is None: continue
@@ -119,12 +116,18 @@ def process_folder_smart_crop(folder_name):
     return np.array(X_list, dtype=np.float32), np.array(y_list, dtype=np.float32)
 
 if __name__ == "__main__":
+    print("\n--- START PREPROCESSING ---")
     X_train, y_train = process_folder_smart_crop("train")
+    print(f" -> Collected {len(X_train)} training samples.")
     X_test, y_test = process_folder_smart_crop("test")
+    print(f" -> Collected {len(X_test)} testing samples.")
     
-    if len(X_train) == 0: exit()
+    if len(X_train) == 0: 
+        print("Error: No training data found!")
+        exit()
     
-    print(f"Raw Features Dimension: {X_train.shape[1]}")
+    print(f"\nFeature Extraction Complete. Raw Dimension: {X_train.shape[1]}")
+    print("Fitting Scaler and PCA (this may take a moment)...")
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -136,7 +139,7 @@ if __name__ == "__main__":
     np.save("data_train_X.npy", X_train_final)
     np.save("data_train_y.npy", y_train)
     
-    if X_test is not None:
+    if X_test is not None and len(X_test) > 0:
         X_test_scaled = scaler.transform(X_test)
         X_test_final = pca.transform(X_test_scaled)
         X_test_final = X_test_final.astype(np.float32)
@@ -145,4 +148,4 @@ if __name__ == "__main__":
 
     joblib.dump(scaler, "model_scaler.pkl")
     joblib.dump(pca, "model_pca.pkl")
-    print("Done Preprocessing.")
+    print("\n✅ Done Preprocessing. Models and data saved.")
